@@ -1,0 +1,23 @@
+name: dgx-b200-4x8
+nodes: 4
+gpus_per_node: 8
+world_size: 32
+cuda_arch: sm_100a
+expert_parallel_size: 8
+data_parallel_size: 4
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+precision: bf16
+matrix_precision: fp8_hybrid
+nccl:
+  async_error_handling: 1
+  ib_hca: mlx5
+  socket_ifname: bond0
+  nvls_enable: 1
+  p2p_level: NVL
+slurm:
+  partition: gpu
+  account: neurotask
+  exclusive: true
+  cpus_per_task: 24
+  memory: 0

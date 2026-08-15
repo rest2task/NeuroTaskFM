@@ -1,0 +1,16 @@
+name: pd_pathology_anchored
+foundation_frozen: true
+shared_adapter: neurodegeneration
+specific_adapter: parkinson
+inputs:
+  imaging: [t1, rest, available_tasks, datscan]
+  biomarkers: [alpha_synuclein_saa, nfl, gba, lrrk2, snca]
+  clinical: [moca, updrs_iii, executive_score, visuospatial_score, medication_state]
+concepts:
+  - sensorimotor_laterality
+  - striatal_motor_integration
+  - frontostriatal_recruitment
+  - posterior_cortical_integrity
+  - default_mode_frontoparietal_segregation
+outcomes: [future_motor, future_executive, cognitive_conversion]
+validation: [pdbp]

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/manifest.schema.json",
+  "title": "NeuroTaskFM participant observation",
+  "type": "object",
+  "required": ["sample_id", "subject_id", "visit_id", "dataset", "split"],
+  "properties": {
+    "sample_id": {"type": "string", "minLength": 1},
+    "subject_id": {"type": "string", "minLength": 1},
+    "family_id": {"type": ["string", "null"]},
+    "visit_id": {"type": "string"},
+    "dataset": {"type": "string"},
+    "site_id": {"type": ["string", "null"]},
+    "split": {"enum": ["train", "validation", "test", "external"]},
+    "task": {"type": ["string", "null"]},
+    "contrast": {"type": ["string", "null"]},
+    "t1_dicom": {"type": ["string", "null"]},
+    "fmri_dicom": {"type": ["string", "null"]},
+    "t1_nifti": {"type": ["string", "null"]},
+    "fmri_nifti": {"type": ["string", "null"]},
+    "atlas_nifti": {"type": ["string", "null"]},
+    "events_tsv": {"type": ["string", "null"]},
+    "behavior_json": {"type": ["string", "null"]},
+    "clinical_json": {"type": ["string", "null"]},
+    "biomarker_json": {"type": ["string", "null"]},
+    "output_pack": {"type": ["string", "null"]},
+    "mr_resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind", "modality"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["image", "image_series", "video", "volume", "volume_series", "dicom", "dicom_series", "array", "kspace"]},
+          "modality": {"type": "string", "minLength": 1},
+          "view": {"type": ["string", "null"]},
+          "frame_axis": {"type": "integer"},
+          "coil_axis": {"type": "integer"},
+          "reconstruction_dims": {"enum": [2, 3]},
+          "layout": {"enum": ["image", "image_series", "video", "volume", "volume_series"]},
+          "dataset": {"type": "string", "minLength": 1},
+          "frame_stride": {"type": "integer", "minimum": 1},
+          "max_frames": {"type": "integer", "minimum": 1},
+          "tr_seconds": {"type": "number", "exclusiveMinimum": 0},
+          "metadata": {"type": "object"}
+        },
+        "additionalProperties": false
+      },
+      "default": []
+    },
+    "tr_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "acquisition_time": {"type": ["string", "null"]},
+    "metadata": {"type": "object"}
+  },
+  "anyOf": [
+    {"required": ["output_pack"], "properties": {"output_pack": {"type": "string", "minLength": 1}}},
+    {"required": ["t1_nifti"], "properties": {"t1_nifti": {"type": "string", "minLength": 1}}},
+    {"required": ["fmri_nifti"], "properties": {"fmri_nifti": {"type": "string", "minLength": 1}}},
+    {"required": ["mr_resources"], "properties": {"mr_resources": {"minItems": 1}}}
+  ],
+  "additionalProperties": false
+}

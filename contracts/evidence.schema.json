@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/evidence.schema.json",
+  "title": "NeuroTaskFM structured evidence",
+  "type": "object",
+  "required": ["subject_key", "query", "observations", "predictions", "quality", "uncertainty", "provenance"],
+  "properties": {
+    "subject_key": {"type": "string"},
+    "query": {"type": "object"},
+    "observations": {"type": "array", "items": {"type": "object"}},
+    "predictions": {"type": "object"},
+    "quality": {"type": "object"},
+    "uncertainty": {"type": "object"},
+    "provenance": {"type": "object"},
+    "warnings": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

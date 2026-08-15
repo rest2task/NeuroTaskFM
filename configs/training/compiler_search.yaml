@@ -1,0 +1,20 @@
+stage: neurocompiler_search
+teacher_model: configs/models/teacher_72b.yaml
+teacher_checkpoint: /checkpoints/neurotaskfm-t/final
+compiler_template: configs/compiler/neurocompiler.yaml
+probe_manifest: /data/manifests/compiler_probe_train.jsonl
+validation_manifest: /data/manifests/compiler_probe_validation.jsonl
+agent: configs/agent/gemini.json
+output_dir: /checkpoints/neurocompiler-search
+search:
+  rounds: 8
+  candidates_per_round: 24
+  full_validation_candidates: 6
+  max_runtime_seconds: 130
+  minimum_spatial_cka: 0.92
+  minimum_temporal_cka: 0.90
+  maximum_failure_rate: 0.005
+  repeated_runs: 5
+planning_estimate:
+  wall_days: [16, 26]
+  note: "Includes frozen-teacher probing, candidate compilation, numerical tuning, and locked validation."

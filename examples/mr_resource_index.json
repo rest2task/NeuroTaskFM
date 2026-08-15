@@ -1,0 +1,23 @@
+{
+  "sub-0001/ses-01/rest": [
+    {
+      "path": "derived/sub-0001/ses-01/t2_axial.png",
+      "kind": "image",
+      "modality": "t2",
+      "view": "axial"
+    },
+    {
+      "path": "derived/sub-0001/ses-01/cine.mp4",
+      "kind": "video",
+      "modality": "bold",
+      "view": "cine",
+      "frame_stride": 2,
+      "max_frames": 24
+    },
+    {
+      "path": "derived/sub-0001/ses-01/flair.nii",
+      "kind": "volume",
+      "modality": "flair"
+    }
+  ]
+}

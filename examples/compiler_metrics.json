@@ -1,0 +1,10 @@
+{
+  "candidate": "baseline-v1",
+  "runtime_seconds": 118.4,
+  "representation_cka": 0.912,
+  "output_consistency": 0.948,
+  "registration_ncc": 0.884,
+  "temporal_stability": 0.903,
+  "failure_rate": 0.004,
+  "notes": ["Residual failures concentrate in severe susceptibility distortion."]
+}

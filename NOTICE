@@ -1,0 +1,8 @@
+NeuroTaskFM
+Copyright 2026 Y. M. Jiang and contributors.
+
+This repository interfaces with NVIDIA CUDA, cuDNN, NCCL, TensorRT,
+Transformer Engine, LibTorch, OpenCV, DCMTK, HDF5, NIfTI, dcm2niix, and Google Gemini.
+Those components are governed by their respective licenses and terms.
+No dataset, clinical record, pretrained weight, or protected health
+information is distributed with this source tree.

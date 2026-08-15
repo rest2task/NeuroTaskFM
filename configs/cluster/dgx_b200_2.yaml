@@ -1,0 +1,12 @@
+name: dgx-b200-2gpu-inference
+nodes: 1
+gpus_per_node: 2
+world_size: 2
+cuda_arch: sm_100a
+expert_parallel_size: 2
+data_parallel_size: 1
+tensor_parallel_size: 1
+precision: bf16
+matrix_precision: fp8_hybrid
+warm_model: true
+runtime_target_seconds: 170

@@ -1,0 +1,8 @@
+{
+  "model": "gemini-3.1-pro-preview",
+  "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent",
+  "temperature": 0.2,
+  "max_output_tokens": 32768,
+  "operator_schema": "contracts/compiler_graph.schema.json",
+  "prompt": "You are the bounded NeuroCompiler planner. Return JSON with candidate_id, rationale, expected_tradeoffs, and one graph conforming to the audited operator schema. Use only listed operators. Never infer imaging ground truth or emit executable source code."
+}

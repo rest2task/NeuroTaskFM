@@ -1,0 +1,72 @@
+name: NeuroTaskFM-T
+variant: raw_teacher
+parameter_label: 72B
+hidden_size: 4352
+num_layers: 48
+num_attention_heads: 34
+num_kv_heads: 17
+head_dim: 128
+ffn_hidden_size: 12288
+moe_layers: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47]
+num_experts: 32
+top_k: 2
+shared_expert: true
+max_sequence_length: 8192
+attention_pattern: [attention, attention, ssm, attention]
+normalization: rmsnorm
+activation: swiglu
+dropout: 0.0
+drop_path: 0.12
+rope_theta: 1000000.0
+observation_latents: 256
+modality_latents: 32
+modalities:
+  dicom_raw: true
+  image_slices: true
+  t1_volume: true
+  fmri_volume: true
+  compiled_features: true
+  task_query: true
+  biomarkers: true
+  clinical: true
+dicom:
+  vocab_size: 65792
+  max_tokens: 4096
+  byte_pair_tokens: 65536
+  control_tokens: 256
+slices:
+  size: 224
+  patch_size: 16
+  tokens_per_slice: 4
+  max_slices: 192
+  orientations: [axial, coronal, sagittal]
+volumes:
+  patch_size: [8, 8, 8]
+  max_tokens: 1024
+  max_frames: 8
+compiled:
+  channels: 32
+  max_spatial_tokens: 512
+  max_temporal_tokens: 1024
+tabular:
+  biomarker_features: 64
+  clinical_features: 64
+  max_tokens: 64
+signature:
+  tokens: 256
+  trait_tokens: 64
+  state_tokens: 64
+  task_tokens: 64
+  longitudinal_tokens: 32
+  provenance_tokens: 16
+  uncertainty_tokens: 16
+outputs:
+  map_shape: [91, 109, 91]
+  task_states: 64
+  future_offsets: [1, 4, 16, 32]
+  behavior_targets: 32
+  quality_targets: 16
+  clinical_targets: 32
+  behavior_names: [task_score, accuracy, reaction_time, response_variability, omission_rate, commission_error, working_memory, episodic_memory, executive_function, relational_reasoning, language, motor, emotion_processing, reward_processing, social_cognition, sustained_attention, processing_speed, cognitive_flexibility, inhibitory_control, verbal_fluency, visuospatial_function, learning_rate, fatigue_slope, temporal_consistency, network_efficiency, task_specificity, default_mode_suppression, laterality, compensatory_recruitment, cross_task_consistency, normative_deviation, global_cognitive_index]
+  quality_names: [mean_fd, max_fd, dvars, tsnr, registration_confidence, temporal_coverage, usable_fraction, motion_dependence, susceptibility_risk, slice_dropout, task_fidelity, engagement_continuity, input_completeness, prediction_support, calibration_proxy, ood_logit]
+  clinical_names: [global_cognition, memory, executive, language, visuospatial, attention, processing_speed, motor, gait, daily_function, symptom_burden, disease_stage, conversion_risk, decline_slope, functional_state_integrity, memory_state_integrity, executive_state_integrity, motor_state_integrity, language_state_integrity, network_segregation, default_mode_integrity, frontoparietal_integrity, hippocampal_cortical_integrity, striatal_motor_integrity, posterior_cortical_integrity, pathology_burden, amyloid_burden, tau_burden, dopaminergic_integrity, alpha_synuclein_burden, treatment_response, followup_priority]

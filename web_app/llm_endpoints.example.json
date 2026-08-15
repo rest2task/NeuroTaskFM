@@ -1,0 +1,7 @@
+{
+  "endpoints": {
+    "task_recognition": {"url": "https://your-service.example/task-recognition", "headers": {"Authorization": "Bearer REPLACE_ME"}, "timeout_seconds": 180},
+    "functional_prediction": {"url": "https://your-service.example/functional-prediction", "headers": {"Authorization": "Bearer REPLACE_ME"}, "timeout_seconds": 240},
+    "chat": {"url": "https://your-service.example/chat", "headers": {"Authorization": "Bearer REPLACE_ME"}, "timeout_seconds": 180}
+  }
+}

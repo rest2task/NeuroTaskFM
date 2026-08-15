@@ -1,0 +1,7 @@
+model_config: configs/models/teacher_72b.yaml
+checkpoint: /checkpoints/neurotaskfm-t-inference
+precision: bf16
+fp8_linear: true
+expert_parallel_size: 8
+max_batch_size: 1
+write_intermediate: true

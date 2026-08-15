@@ -1,0 +1,16 @@
+name: ad_pathology_anchored
+foundation_frozen: true
+shared_adapter: neurodegeneration
+specific_adapter: alzheimer
+inputs:
+  imaging: [t1, rest, available_tasks]
+  biomarkers: [amyloid_pet, tau_pet, csf_abeta42_40, csf_ptau, plasma_ptau, apoe]
+  clinical: [cdr_sb, mmse, memory_composite, executive_composite]
+concepts:
+  - hippocampal_cortical_recruitment
+  - posterior_medial_integrity
+  - default_mode_deactivation
+  - memory_network_segregation
+  - compensatory_frontoparietal_recruitment
+outcomes: [future_memory, future_global_cognition, conversion]
+validation: [oasis3, oasis4]

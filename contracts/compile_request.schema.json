@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/compile_request.schema.json",
+  "title": "NeuroCompiler request",
+  "type": "object",
+  "required": ["request_id", "t1", "fmri", "atlas", "subject_key", "config", "output"],
+  "properties": {
+    "request_id": {"type": "string", "minLength": 1},
+    "t1": {"type": "string", "minLength": 1},
+    "fmri": {"type": "string", "minLength": 1},
+    "atlas": {"type": "string", "minLength": 1},
+    "t1_dicom": {"type": "string"},
+    "fmri_dicom": {"type": "string"},
+    "subject_key": {"type": "string", "minLength": 1},
+    "task": {"type": "string"},
+    "tr_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "config": {"type": "string", "minLength": 1},
+    "output": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

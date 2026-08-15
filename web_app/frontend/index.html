@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="NeuroTaskFM exploratory fMRI loading analysis and visualization" />
+    <title>NeuroTaskFM · Functional mapping</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <main class="workspace">
+        <aside class="control-panel">
+          <div class="brand-block panel-brand">
+            <div class="brand-mark" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <div>
+              <div class="brand-line">Neuro<span>FM</span></div>
+              <div class="brand-subtitle">Functional mapping workspace</div>
+            </div>
+          </div>
+
+          <section class="panel-section intro-section">
+            <h1>Find contrastive functional dynamics.</h1>
+          </section>
+
+          <section class="dataset-library" id="dataset-library">
+            <div class="library-header">
+              <div>
+                <h3>Your datasets</h3>
+              </div>
+              <button id="refresh-library" type="button" aria-label="Refresh Saved Datasets" data-tooltip="Refresh Saved Datasets">Refresh</button>
+            </div>
+            <div class="library-tabs" role="tablist">
+              <button class="active" id="datasets-tab" type="button" data-tooltip="Show Saved Dataset Pairs">Dataset pairs</button>
+              <button id="results-tab" type="button" data-tooltip="Show Saved Analysis Results">Saved results</button>
+            </div>
+            <div class="library-list" id="pair-list">
+              <div class="library-loading">Loading saved pairs…</div>
+            </div>
+            <div class="library-list hidden" id="history-list"></div>
+          </section>
+
+          <div class="or-divider"><span>or upload a new pair</span></div>
+
+          <form id="analysis-form" class="analysis-form">
+            <label class="upload-card" id="t1-drop" data-tooltip="Choose a 3D T1 Structural MRI File">
+              <input id="t1-input" name="t1" type="file" accept=".nii,.nii.gz,application/gzip" />
+              <span class="upload-number">01</span>
+              <span class="upload-copy">
+                <strong>T1 structural MRI</strong>
+                <small id="t1-name">3D NIfTI · .nii or .nii.gz</small>
+              </span>
+              <span class="upload-icon">＋</span>
+            </label>
+
+            <label class="upload-card" id="fmri-drop" data-tooltip="Choose a 4D Task or Resting-State fMRI File">
+              <input id="fmri-input" name="fmri" type="file" accept=".nii,.nii.gz,application/gzip" />
+              <span class="upload-number">02</span>
+              <span class="upload-copy">
+                <strong>Task fMRI</strong>
+                <small id="fmri-name">4D NIfTI · resting also supported</small>
+              </span>
+              <span class="upload-icon">＋</span>
+            </label>
+
+            <div class="field-row">
+              <label data-tooltip="Choose Whether to Discover Latent Task Responses or Resting-State Networks">
+                <span>Scan type</span>
+                <select id="scan-type" name="scan_type">
+                  <option value="task">Task</option>
+                  <option value="rest">Resting state</option>
+                </select>
+              </label>
+              <label data-tooltip="Choose How Many Reproducible Latent Network Waveforms Enter the FILM Model">
+                <span>Latent sources</span>
+                <select id="components" name="latent_sources">
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5" selected>5</option>
+                  <option value="6">6</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label data-tooltip="Set the Number of Initial fMRI Volumes to Discard">
+                <span>Discard volumes</span>
+                <input id="discard" name="discard" type="number" min="0" max="50" value="5" />
+              </label>
+              <label class="toggle-field" data-tooltip="Add the Mean-Brain Signal as a Nuisance Regressor in the Prewhitened FILM Model">
+                <span>Global nuisance</span>
+                <input id="regress-global" type="checkbox" />
+                <span class="toggle-track"><i></i></span>
+                <small>Regress</small>
+              </label>
+            </div>
+
+            <label class="run-name-field" data-tooltip="Name This Dataset Pair and Analysis Run">
+              <span>Name</span>
+              <input id="run-name" name="run_name" type="text" maxlength="80" value="Pair 1" data-source="auto" autocomplete="off" required />
+            </label>
+
+            <button id="analyze-button" class="primary-button" type="submit" data-tooltip="Run Latent ROI Inference, FSL FILM Mapping, and Task-Domain Recognition">
+              <span>Run latent analysis</span>
+            </button>
+          </form>
+
+          <section class="progress-card" id="progress-card">
+            <div class="progress-topline">
+              <div>
+                <span id="progress-stage">Ready for data</span>
+                <small id="progress-message">Select both files to begin</small>
+              </div>
+              <strong id="progress-number">0%</strong>
+            </div>
+            <div class="progress-track"><i id="progress-bar"></i></div>
+            <div class="stage-row">
+              <span>Load</span><span>Map</span><span>Register</span><span>Project</span>
+            </div>
+          </section>
+        </aside>
+
+        <section class="viewer-column">
+          <div class="viewer-switch-row">
+            <div class="viewer-mode-switch" aria-label="View mode">
+              <button id="slices-mode" class="active" type="button" data-tooltip="View MRI Slices in Standardized MNI Space">Brain Viewer</button>
+              <button id="glass-mode" type="button" data-tooltip="View Three All-Depth Projections and an Interactive 3D Brain">Glass Brain</button>
+            </div>
+            <div class="map-mode-switch" aria-label="Functional signal model">
+              <button id="dynamic-map-mode" class="active" type="button" data-tooltip="Show Regions With the Strongest Task-Related Temporal Variation">Dynamic Task ROI</button>
+              <button id="activity-map-mode" type="button" data-tooltip="Show Voxels With the Strongest Overall Functional Activity" disabled>All Active Voxels</button>
+            </div>
+            <div class="coordinate-readout" id="coordinate-readout" data-tooltip="Current Crosshair Coordinate in MNI Space">MNI&nbsp;&nbsp; 0, 0, 0</div>
+            <button id="back-button" class="back-button hidden" type="button" aria-label="Close result and return to datasets" data-tooltip="Close This Result and Return to Datasets">
+              <span>Close</span><b aria-hidden="true">✕</b>
+            </button>
+          </div>
+          <div class="canvas-frame viewer-stage">
+            <div class="viewer-pane" id="slice-pane">
+              <canvas id="slice-canvas" aria-label="Axial, coronal and sagittal MRI views"></canvas>
+              <div class="canvas-badge">MNI152 · 1 mm display</div>
+              <div class="viewer-interaction-hint brain-interaction-hint">Drag to rotate · Scroll to zoom</div>
+              <div class="canvas-loader" id="slice-loader"><i></i><span>Loading viewer</span></div>
+            </div>
+            <div class="viewer-pane hidden" id="glass-pane">
+              <div class="glass-layout hidden" id="glass-layout">
+                <div class="glass-mip-stage">
+                  <img id="glass-brain-image" class="glass-brain-image" alt="Sagittal, coronal and axial all-depth Glass Brain projections" draggable="false" />
+                  <div class="canvas-loader hidden" id="glass-loader"><i></i><span>Building all-depth projections</span></div>
+                  <div class="glass-panel-fallback hidden" id="glass-mip-fallback">All-depth projections unavailable</div>
+                </div>
+                <div class="glass-render-stage">
+                  <canvas id="glass-render-canvas" aria-label="Interactive transparent 3D brain activation map"></canvas>
+                  <div class="viewer-interaction-hint glass-interaction-hint">Drag to rotate · Scroll to zoom</div>
+                  <div class="canvas-loader hidden" id="glass-render-loader"><i></i><span>Loading interactive 3D</span></div>
+                  <div class="glass-panel-fallback hidden" id="glass-render-fallback">Interactive 3D requires WebGL2</div>
+                </div>
+              </div>
+              <div class="glass-placeholder" id="glass-placeholder">
+                <span class="glass-glyph">◉</span>
+                <strong>Glass Brain · 3 views + 3D</strong>
+                <small>Run or open an analysis to project every supported MNI voxel through the transparent brain</small>
+              </div>
+            </div>
+          </div>
+          <div class="viewer-toolbar">
+            <label class="slice-only-control" data-tooltip="Choose the Anatomical Background for the Brain Viewer">
+              Background
+              <select id="background-select">
+                <option value="0">MNI152 template · 1 mm</option>
+                <option value="1">Registered T1</option>
+                <option value="2">Registered mean BOLD</option>
+              </select>
+            </label>
+            <label class="preset-control" id="dynamic-sensitivity-control" data-tooltip="Relative Sensitivity: Negative Is Stricter, 0 Is Calibrated, Positive Shows More">
+              <span>Sensitivity</span>
+              <select id="dynamic-sensitivity">
+                <option value="-3">-3</option>
+                <option value="-2">-2</option>
+                <option value="-1">-1</option>
+                <option value="0" selected>0</option>
+                <option value="1">+1</option>
+                <option value="2">+2</option>
+                <option value="3">+3</option>
+              </select>
+            </label>
+            <label class="preset-control hidden" id="activity-threshold-control" data-tooltip="Relative Sensitivity: Negative Is Stricter, 0 Is Calibrated, Positive Shows More">
+              <span>Sensitivity</span>
+              <select id="threshold">
+                <option value="-3">-3</option>
+                <option value="-2">-2</option>
+                <option value="-1">-1</option>
+                <option value="0" selected>0</option>
+                <option value="1">+1</option>
+                <option value="2">+2</option>
+                <option value="3">+3</option>
+              </select>
+            </label>
+            <label class="preset-control" data-tooltip="Adjust the Activation Overlay Opacity">
+              <span>Overlay</span>
+              <select id="opacity">
+                <option value="20">20%</option>
+                <option value="40">40%</option>
+                <option value="60">60%</option>
+                <option value="75">75%</option>
+                <option value="90">90%</option>
+                <option value="100" selected>100%</option>
+              </select>
+            </label>
+            <div class="palette-control slice-only-control" id="brain-palette-control">
+              <span>Palette</span>
+              <div class="palette-buttons brain-palette-buttons" role="group" aria-label="Brain Viewer color palette">
+                <button class="active" type="button" data-brain-palette="warm" data-tooltip="Use the Warm Color Palette" aria-pressed="true">Warm</button>
+                <button type="button" data-brain-palette="viridis" data-tooltip="Use the Viridis Color Palette" aria-pressed="false">Viridis</button>
+                <button type="button" data-brain-palette="cool" data-tooltip="Use the Cool Color Palette" aria-pressed="false">Cool</button>
+              </div>
+            </div>
+            <div class="palette-control glass-only-control hidden" id="glass-palette-control">
+              <span>Palette</span>
+              <div class="palette-buttons" role="group" aria-label="Glass Brain color palette">
+                <button type="button" data-palette="warm" data-tooltip="Use the Warm Color Palette" aria-pressed="false">Warm</button>
+                <button type="button" data-palette="plasma" data-tooltip="Use the Plasma Color Palette" aria-pressed="false">Plasma</button>
+                <button class="active" type="button" data-palette="viridis" data-tooltip="Use the Viridis Color Palette" aria-pressed="true">Viridis</button>
+                <button type="button" data-palette="inferno" data-tooltip="Use the Inferno Color Palette" aria-pressed="false">Inferno</button>
+                <button type="button" data-palette="turbo" data-tooltip="Use the Turbo Color Palette" aria-pressed="false">Turbo</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="result-column">
+          <div class="region-comparison">
+            <section class="region-card">
+              <div class="region-head">
+                <div>
+                  <p class="eyebrow">Dynamic Task ROI</p>
+                  <h3>Most dynamic regions</h3>
+                </div>
+                <div class="region-head-actions">
+                  <select id="dynamic-region-limit" aria-label="Number of dynamic regions shown" data-tooltip="Choose How Many Dynamic Task ROIs to Display">
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                    <option value="16">16</option>
+                    <option value="20" selected>20</option>
+                    <option value="24">24</option>
+                  </select>
+                  <button id="view-dynamic-regions" class="active" type="button" data-tooltip="Display Dynamic Task ROIs in the Brain Viewer">View</button>
+                </div>
+              </div>
+              <div class="region-list" id="region-list">
+                <div class="empty-regions">
+                  <span>◎</span>
+                  <p>Dynamic regions appear after analysis.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="region-card activity-region-card">
+              <div class="region-head">
+                <div>
+                  <p class="eyebrow">All Active Voxels</p>
+                  <h3>Active regions</h3>
+                </div>
+                <div class="region-head-actions">
+                  <select id="activity-region-limit" aria-label="Number of active regions shown" data-tooltip="Choose How Many Active Regions to Display">
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                    <option value="16">16</option>
+                    <option value="20" selected>20</option>
+                    <option value="24">24</option>
+                  </select>
+                  <button id="view-activity-regions" type="button" data-tooltip="Display All Active Voxels in the Brain Viewer" disabled>View</button>
+                </div>
+              </div>
+              <div class="region-list" id="activity-region-list">
+                <div class="empty-regions">
+                  <span>◎</span>
+                  <p>Active regions appear after analysis.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="result-bottom">
+            <section class="task-recognition-card hidden" id="task-recognition-card" aria-label="Task recognition labels">
+              <div class="task-labels" id="task-labels" aria-live="polite"></div>
+            </section>
+            <section class="bold-card" id="bold-card" aria-labelledby="bold-region-title">
+              <div class="bold-card-head">
+                <div>
+                  <p class="eyebrow">Regional BOLD change</p>
+                </div>
+                <span id="bold-region-title">Selected MNI region</span>
+              </div>
+              <div class="bold-plot-stage" id="bold-plot-stage">
+                <svg id="bold-chart" viewBox="0 0 420 190" role="img" aria-label="Regional percent BOLD signal change by frame number">
+                  <defs>
+                    <linearGradient id="bold-area-gradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#71eebd" stop-opacity="0.30"></stop>
+                      <stop offset="100%" stop-color="#71eebd" stop-opacity="0"></stop>
+                    </linearGradient>
+                    <filter id="bold-line-glow" x="-20%" y="-40%" width="140%" height="180%">
+                      <feGaussianBlur stdDeviation="1.8" result="blur"></feGaussianBlur>
+                      <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+                    </filter>
+                  </defs>
+                  <g id="bold-grid"></g>
+                  <g id="bold-series"></g>
+                  <g class="bold-hover-mark hidden" id="bold-hover-mark">
+                    <line id="bold-hover-line"></line>
+                    <circle id="bold-hover-dot" r="4"></circle>
+                  </g>
+                </svg>
+                <div class="bold-empty" id="bold-empty">
+                  <span aria-hidden="true">∿</span>
+                  <strong>Select an ROI or move the MNI crosshair</strong>
+                </div>
+                <div class="bold-loading hidden" id="bold-loading">Loading regional BOLD curve</div>
+                <div class="bold-tooltip hidden" id="bold-tooltip"></div>
+              </div>
+              <div class="bold-card-foot">
+                <span id="bold-meta">Frame 0 →</span>
+                <span>% BOLD change</span>
+              </div>
+            </section>
+            <div class="result-actions">
+              <button id="download-button" class="download-map-button" type="button" data-map-mode="dynamic" data-tooltip="Download the Selected Full-Resolution 3D NIfTI Map" disabled>Download full 3D map</button>
+              <button id="open-functional-prediction" class="prediction-launch-button" type="button" data-tooltip="Predict a Hypothetical Activation Map for Another Task" disabled>
+                <span>Functional Prediction</span>
+              </button>
+              <button id="open-assistant" class="assistant-launch-button" type="button" data-tooltip="Open Ask NeuroTaskFM for Research Interpretation">
+                <span>Ask NeuroTaskFM</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="assistant-dialog" id="assistant-dialog" aria-labelledby="assistant-title">
+      <section class="assistant-card" id="assistant-card">
+        <div class="assistant-head">
+          <div>
+            <p class="eyebrow">Multimodal interpretation</p>
+            <h3 id="assistant-title">Ask NeuroTaskFM</h3>
+          </div>
+          <button id="close-assistant" class="assistant-close-button" type="button" aria-label="Close Ask NeuroTaskFM" data-tooltip="Close Ask NeuroTaskFM">×</button>
+        </div>
+        <div class="scope-notice hidden" id="scope-notice" role="alertdialog" aria-modal="true" aria-labelledby="scope-notice-title">
+          <div class="scope-notice-panel">
+            <span class="scope-notice-icon" aria-hidden="true">!</span>
+            <p class="eyebrow">Question not allowed</p>
+            <h4 id="scope-notice-title">Keep questions within NeuroTaskFM</h4>
+            <p id="scope-notice-message">Ask about the current fMRI result, neuroimaging, neuroscience, or relevant medical and clinical research.</p>
+            <button id="scope-notice-dismiss" type="button" data-tooltip="Close This Notice and Revise the Question">Understood</button>
+          </div>
+        </div>
+        <div class="chat-list" id="chat-list">
+          <div class="chat-empty">
+            <span>✦</span>
+            <p>Open an analyzed result to ask about its task, networks, and loading pattern.</p>
+          </div>
+        </div>
+        <form class="assistant-form" id="assistant-form">
+          <label class="assistant-field">
+            <span>Your question</span>
+            <textarea id="assistant-question" maxlength="4000" rows="3" placeholder="Infer the likely task or network pattern from these maps." disabled></textarea>
+          </label>
+          <div class="assistant-actions">
+            <button id="assistant-submit" type="submit" data-tooltip="Send This Question to Ask NeuroTaskFM" disabled>Send</button>
+          </div>
+        </form>
+      </section>
+    </dialog>
+
+    <dialog class="assistant-dialog prediction-dialog" id="prediction-dialog" aria-labelledby="prediction-title">
+      <section class="prediction-card">
+        <div class="assistant-head prediction-head">
+          <div>
+            <p class="eyebrow">Atlas-level task transfer</p>
+            <h3 id="prediction-title">Functional Prediction</h3>
+          </div>
+          <button id="close-functional-prediction" class="assistant-close-button" type="button" aria-label="Close Functional Prediction" data-tooltip="Close Functional Prediction">×</button>
+        </div>
+        <div class="prediction-workspace">
+          <form class="prediction-form" id="prediction-form">
+            <section class="prediction-library" aria-labelledby="prediction-history-title">
+              <div class="prediction-library-head">
+                <strong id="prediction-history-title">Load prediction</strong>
+                <span id="prediction-history-count">0/10 saved</span>
+              </div>
+              <div class="prediction-history-list" id="prediction-history-list">
+                <div class="prediction-history-empty">No saved predictions yet.</div>
+              </div>
+            </section>
+            <div class="prediction-or-divider"><span>or generate a new prediction</span></div>
+            <label class="prediction-field">
+              <span>What exactly was the current task?</span>
+              <textarea id="prediction-source-task" rows="3" maxlength="500" placeholder="Short example: View moving dots, choose left or right motion, then press the matching button." required></textarea>
+            </label>
+            <label class="prediction-field">
+              <span>Which contrast should be predicted?</span>
+              <select id="prediction-target-task" required>
+                <option value="" selected disabled>Loading available contrasts…</option>
+              </select>
+              <small class="hidden" id="prediction-contrast-status"></small>
+            </label>
+            <button class="prediction-submit" id="prediction-submit" type="submit">Generate prediction</button>
+            <div class="prediction-viewer-toolbar hidden" id="prediction-viewer-toolbar">
+              <label class="prediction-slice-only-control" data-tooltip="Choose the Anatomical Background for the Brain Viewer">
+                <span>Background</span>
+                <select id="prediction-background-select">
+                  <option value="0">MNI152 template · 1 mm</option>
+                  <option value="1">Registered T1</option>
+                  <option value="2">Registered mean BOLD</option>
+                </select>
+              </label>
+              <div class="prediction-toolbar-row">
+                <label class="preset-control" data-tooltip="Relative Sensitivity: Negative Is Stricter, 0 Is Calibrated, Positive Shows More">
+                  <span>Sensitivity</span>
+                  <select id="prediction-sensitivity">
+                    <option value="-3">-3</option>
+                    <option value="-2">-2</option>
+                    <option value="-1">-1</option>
+                    <option value="0" selected>0</option>
+                    <option value="1">+1</option>
+                    <option value="2">+2</option>
+                    <option value="3">+3</option>
+                  </select>
+                </label>
+                <label class="preset-control" data-tooltip="Adjust the Prediction Overlay Opacity">
+                  <span>Overlay</span>
+                  <select id="prediction-opacity">
+                    <option value="20">20%</option>
+                    <option value="40">40%</option>
+                    <option value="60">60%</option>
+                    <option value="75">75%</option>
+                    <option value="90">90%</option>
+                    <option value="100" selected>100%</option>
+                  </select>
+                </label>
+              </div>
+              <div class="palette-control prediction-slice-only-control" id="prediction-brain-palette-control">
+                <span>Palette</span>
+                <div class="palette-buttons brain-palette-buttons" role="group" aria-label="Prediction Brain Viewer color palette">
+                  <button class="active" type="button" data-prediction-brain-palette="warm" aria-pressed="true">Warm</button>
+                  <button type="button" data-prediction-brain-palette="viridis" aria-pressed="false">Viridis</button>
+                  <button type="button" data-prediction-brain-palette="cool" aria-pressed="false">Cool</button>
+                </div>
+              </div>
+              <div class="palette-control prediction-glass-only-control hidden" id="prediction-glass-palette-control">
+                <span>Palette</span>
+                <div class="palette-buttons" role="group" aria-label="Prediction Glass Brain color palette">
+                  <button type="button" data-prediction-glass-palette="warm" aria-pressed="false">Warm</button>
+                  <button type="button" data-prediction-glass-palette="plasma" aria-pressed="false">Plasma</button>
+                  <button class="active" type="button" data-prediction-glass-palette="viridis" aria-pressed="true">Viridis</button>
+                  <button type="button" data-prediction-glass-palette="inferno" aria-pressed="false">Inferno</button>
+                  <button type="button" data-prediction-glass-palette="turbo" aria-pressed="false">Turbo</button>
+                </div>
+              </div>
+              <button id="prediction-download-button" class="download-map-button" type="button" data-tooltip="Download the Predicted Full-Resolution 3D NIfTI Map" disabled>Download full 3D map</button>
+            </div>
+          </form>
+
+          <section class="prediction-output" aria-live="polite">
+            <div class="prediction-empty" id="prediction-empty">
+              <span aria-hidden="true">◎</span>
+              <strong>Target-contrast map</strong>
+              <p>Describe the measured source task and choose the exact contrast you want to simulate.</p>
+            </div>
+            <div class="prediction-loading hidden" id="prediction-loading">
+              <i class="prediction-loading-spinner" aria-hidden="true"></i>
+              <strong>Building the atlas transfer</strong>
+              <p class="prediction-loading-message">NeuroTaskFM is processing your request</p>
+              <div class="prediction-progress">
+                <div class="prediction-progress-meta">
+                  <b id="prediction-progress-step">0%</b>
+                  <time id="prediction-progress-elapsed">Elapsed 0m 00s</time>
+                </div>
+                <div
+                  class="prediction-progress-track"
+                  id="prediction-progress-track"
+                  role="progressbar"
+                  aria-label="Estimated Functional Prediction progress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                  aria-valuetext="0 percent: Preparing the NeuroTaskFM workspace"
+                >
+                  <div id="prediction-progress-fill"></div>
+                </div>
+                <div class="prediction-progress-current">
+                  <p id="prediction-progress-detail">Preparing the NeuroTaskFM workspace</p>
+                  <div class="prediction-progress-usage" aria-live="polite">
+                    <span class="prediction-usage-chip prediction-usage-input" id="prediction-usage-input" aria-label="Input tokens waiting">
+                      <span class="prediction-usage-icon" aria-hidden="true">↑</span>
+                      <small>Input</small>
+                      <b id="prediction-usage-input-count">0</b>
+                    </span>
+                    <span class="prediction-usage-chip prediction-usage-reasoning" id="prediction-usage-reasoning" aria-label="Thinking tokens waiting">
+                      <span class="prediction-usage-icon" aria-hidden="true">✦</span>
+                      <small>Thinking</small>
+                      <b id="prediction-usage-reasoning-count">—</b>
+                    </span>
+                    <span class="prediction-usage-chip prediction-usage-output" id="prediction-usage-output" aria-label="Final output tokens waiting">
+                      <span class="prediction-usage-icon" aria-hidden="true">↓</span>
+                      <small>Output</small>
+                      <b id="prediction-usage-output-count">0</b>
+                    </span>
+                  </div>
+                </div>
+                <ol class="prediction-progress-stages" id="prediction-progress-stages">
+                  <li class="is-active" data-prediction-stage="preparing">
+                    <span class="prediction-stage-marker" aria-hidden="true"></span>
+                    <span>Preparing the NeuroTaskFM workspace</span>
+                  </li>
+                  <li data-prediction-stage="target">
+                    <span class="prediction-stage-marker" aria-hidden="true"></span>
+                    <span>Loading the target group reference</span>
+                  </li>
+                  <li data-prediction-stage="source">
+                    <span class="prediction-stage-marker" aria-hidden="true"></span>
+                    <span>Reading the source pattern</span>
+                  </li>
+                  <li data-prediction-stage="generating">
+                    <span class="prediction-stage-marker" aria-hidden="true"></span>
+                    <span>Generating the functional prediction</span>
+                  </li>
+                  <li data-prediction-stage="visualizing">
+                    <span class="prediction-stage-marker" aria-hidden="true"></span>
+                    <span>Visualizing the final output</span>
+                  </li>
+                </ol>
+                <small class="prediction-progress-note">Usually 1–2 minutes</small>
+              </div>
+            </div>
+            <div class="prediction-result hidden" id="prediction-result">
+              <div class="prediction-result-layout">
+                <section class="prediction-visual-column">
+                  <div class="prediction-view-switch-row">
+                    <div class="viewer-mode-switch prediction-mode-switch" aria-label="Prediction view mode">
+                      <button class="active" id="prediction-slices-mode" type="button">Brain Viewer</button>
+                      <button id="prediction-glass-mode" type="button">Glass Brain</button>
+                    </div>
+                    <div class="prediction-view-meta">
+                      <div class="prediction-result-usage hidden" id="prediction-result-usage" aria-label="Completed token usage">
+                        <span class="prediction-usage-input"><small>Input</small><b id="prediction-result-input-count">0</b></span>
+                        <span class="prediction-usage-reasoning"><small>Thinking</small><b id="prediction-result-reasoning-count">0</b></span>
+                        <span class="prediction-usage-output"><small>Output</small><b id="prediction-result-output-count">0</b></span>
+                      </div>
+                      <div class="coordinate-readout prediction-coordinate-readout" id="prediction-coordinate-readout">MNI&nbsp;&nbsp; 0, 0, 0</div>
+                    </div>
+                  </div>
+
+                  <div class="canvas-frame prediction-viewer-frame">
+                    <div class="prediction-view-pane" id="prediction-slice-pane">
+                      <canvas id="prediction-brain-canvas" aria-label="Predicted target-contrast activation in the Brain Viewer"></canvas>
+                      <div class="canvas-badge">MNI152 · 1 mm display</div>
+                      <div class="viewer-interaction-hint brain-interaction-hint">Drag to rotate · Scroll to zoom</div>
+                      <div class="canvas-loader hidden" id="prediction-viewer-loader"><i></i><span>Loading predicted map</span></div>
+                    </div>
+                    <div class="prediction-view-pane hidden" id="prediction-glass-pane">
+                      <div class="prediction-glass-layout">
+                        <div class="prediction-glass-mip-stage">
+                          <img id="prediction-glass-image" class="glass-brain-image" alt="Predicted target-contrast sagittal, coronal, and axial all-depth projections" draggable="false" />
+                          <div class="canvas-loader hidden" id="prediction-glass-loader"><i></i><span>Building all-depth projections</span></div>
+                          <div class="glass-panel-fallback hidden" id="prediction-glass-mip-fallback">All-depth projections unavailable</div>
+                        </div>
+                        <div class="prediction-glass-render-stage">
+                          <canvas id="prediction-glass-render-canvas" aria-label="Interactive transparent 3D predicted activation map"></canvas>
+                          <div class="viewer-interaction-hint glass-interaction-hint">Drag to rotate · Scroll to zoom</div>
+                          <div class="canvas-loader hidden" id="prediction-glass-render-loader"><i></i><span>Loading interactive 3D</span></div>
+                          <div class="glass-panel-fallback hidden" id="prediction-glass-render-fallback">Interactive 3D requires WebGL2</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </section>
+
+                <section class="prediction-loadings-panel">
+                  <div class="prediction-region-head">
+                    <div>
+                      <strong>Highest region Z scores</strong>
+                      <span id="prediction-region-count">Top 36 regions</span>
+                    </div>
+                    <label>
+                      <span class="sr-only">Filter regions</span>
+                      <input id="prediction-region-filter" type="search" placeholder="Filter regions" autocomplete="off" />
+                    </label>
+                  </div>
+                  <div class="prediction-region-list" id="prediction-region-list"></div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </dialog>
+    <div class="app-tooltip" id="app-tooltip" role="tooltip" aria-hidden="true"></div>
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

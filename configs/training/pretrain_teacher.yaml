@@ -1,0 +1,166 @@
+stage: teacher_pretraining
+model: configs/models/teacher_72b.yaml
+cluster: configs/cluster/dgx_b200_32.yaml
+manifest: /data/manifests/foundation_train.jsonl
+validation_manifest: /data/manifests/foundation_val.jsonl
+output_dir: /checkpoints/neurotaskfm-t
+seed: 20260814
+max_steps: 1200000
+global_batch_size: 256
+micro_batch_size: 1
+gradient_accumulation_steps: 64
+optimizer:
+  name: adamw
+  learning_rate: 0.00012
+  minimum_learning_rate: 6.0e-06
+  warmup_steps: 48000
+  weight_decay: 0.08
+  betas:
+  - 0.9
+  - 0.95
+  eps: 1.0e-08
+  gradient_clip: 1.0
+precision:
+  autocast: bf16
+  fp8: hybrid
+  fp8_start_step: 20000
+parallel:
+  expert_parallel_size: 8
+  data_parallel_size: 4
+  activation_checkpointing: every_block
+  fsdp_shard_group: data_parallel
+  compile: true
+sampling:
+  hierarchy:
+  - dataset
+  - participant
+  - visit
+  - run
+  - window
+  dataset_temperature: 0.5
+  family_aware: true
+  same_batch_across_expert_group: true
+resources:
+  enabled: false
+  include_primary_nifti: true
+  primary_nifti_destination: typed
+  prefer_direct_nifti: false
+  allow_missing_pack: false
+  nifti_frame_axis: -1
+  image_size: [224, 224]
+  volume_shape: [96, 112, 96]
+  max_images: 48
+  max_video_frames: 32
+  max_volumes: 8
+  max_fmri_volumes: 8
+  frame_stride: 1
+  image_patch_size: 16
+  tokens_per_image: 4
+  tokens_per_video_frame: 4
+  volume_patch_size: [8, 8, 8]
+  tokens_per_volume: 64
+  eligible_resources: [dicom, slices, compiled_spatial, compiled_temporal, t1_volume, fmri_volume, mr_images, mr_video, mr_volumes]
+  sample_combinations: true
+  combinations:
+    all_available: {weight: 0.20, include: ["*"]}
+    generic_mr_only: {weight: 0.07, include: [mr_images, mr_video, mr_volumes]}
+    still_images_only: {weight: 0.06, include: [mr_images]}
+    cine_or_video_only: {weight: 0.06, include: [mr_video]}
+    typed_volumes_only: {weight: 0.10, include: [mr_volumes]}
+    images_plus_volumes: {weight: 0.08, include: [mr_images, mr_volumes]}
+    video_plus_volumes: {weight: 0.06, include: [mr_video, mr_volumes]}
+    compiler_only: {weight: 0.08, include: [compiled_spatial, compiled_temporal]}
+    compiler_plus_images: {weight: 0.05, include: [compiled_spatial, compiled_temporal, mr_images]}
+    compiler_plus_video: {weight: 0.04, include: [compiled_spatial, compiled_temporal, mr_video]}
+    acquisition_plus_pixels: {weight: 0.03, include: [dicom, mr_images, mr_video, mr_volumes]}
+    native_raw_volumes: {weight: 0.02, include: [t1_volume, fmri_volume]}
+    structural_multicontrast: {weight: 0.05, include: [slices, t1_volume, mr_images, mr_volumes], modalities: [t1, t2, flair, dwi, swi, qsm, magnitude, angiography, parametric]}
+    functional_sequences: {weight: 0.05, include: [slices, fmri_volume, mr_video, mr_volumes], modalities: [bold, fmri, epi, perfusion, asl, dsc, spectroscopy]}
+    t1_plus_bold: {weight: 0.05, include: [slices, t1_volume, fmri_volume, mr_images, mr_video, mr_volumes], modalities: [t1, bold]}
+augmentation:
+  modality_dropout: 0.18
+  t1_dropout: 0.12
+  dicom_token_mask: 0.22
+  slice_mask: 0.35
+  temporal_block_mask: 0.62
+  spatial_block_mask: 0.68
+  shortened_run_probability: 0.35
+  motion_corruption_probability: 0.25
+  task_query_dropout: 0.5
+loss:
+  masked_latent: 1.0
+  future_latent: 0.6
+  t1_fmri_alignment: 0.5
+  map: 1.0
+  behavior: 0.6
+  dynamic_state: 0.6
+  quality: 0.3
+  longitudinal: 0.4
+  moe_balance: 0.01
+  physics:
+    enabled: false
+    regions: 512
+    lambda_dyn: 0.15
+    lambda_bold: 0.08
+    lambda_stab: 0.05
+    lambda_equiv: 0.04
+    equivariance_shift_steps: 1
+    stability_margin: 0.02
+    bold_scale: 1.0
+    demean_bold: true
+    terms:
+      dynamics: true
+      anatomy: true
+      hemodynamics: true
+      stability: true
+      equivariance: true
+checkpoint:
+  interval_steps: 5000
+  keep_last: 6
+  async_write: true
+logging:
+  interval_steps: 20
+  validation_interval_steps: 2500
+planning_estimate:
+  wall_days_single_run:
+  - 55
+  - 78
+  final_replicates: 3
+  note: Planning range only; report measured GPU-hours and throughput in the manuscript.
+context_curriculum:
+- until_step: 160000
+  dicom_tokens: 1024
+  slices: 48
+  spatial_tokens: 256
+  temporal_tokens: 192
+  fmri_frames: 2
+  mr_images: 12
+  mr_video_frames: 8
+  mr_volumes: 2
+- until_step: 420000
+  dicom_tokens: 2048
+  slices: 96
+  spatial_tokens: 384
+  temporal_tokens: 384
+  fmri_frames: 4
+  mr_images: 24
+  mr_video_frames: 16
+  mr_volumes: 4
+- until_step: 700000
+  dicom_tokens: 3072
+  slices: 144
+  spatial_tokens: 512
+  temporal_tokens: 640
+  fmri_frames: 6
+  mr_images: 36
+  mr_video_frames: 24
+  mr_volumes: 6
+- until_step: 1200000
+  dicom_tokens: 4096
+  slices: 192
+  spatial_tokens: 512
+  temporal_tokens: 1024
+  fmri_frames: 8
+  mr_images: 48
+  mr_video_frames: 32
+  mr_volumes: 8

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "state": "bootstrap_unlocked",
+  "map_temperature": 1.0,
+  "behavior_temperature": 1.0,
+  "ood_index": 15,
+  "ood_temperature": 1.0,
+  "thresholds": {
+    "minimum_map_confidence": 0.70,
+    "minimum_behavior_confidence": 0.65,
+    "maximum_ood_score": 0.20
+  },
+  "provenance": "Deterministic initialization. Refit and lock on the development-validation cohort before publication evaluation."
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/gemini_proposal.schema.json",
+  "title": "Gemini NeuroCompiler proposal",
+  "type": "object",
+  "required": ["candidate_id", "rationale", "graph", "expected_tradeoffs"],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 1},
+    "rationale": {"type": "string", "minLength": 1},
+    "graph": {"$ref": "compiler_graph.schema.json"},
+    "expected_tradeoffs": {"type": "object"}
+  },
+  "additionalProperties": false
+}

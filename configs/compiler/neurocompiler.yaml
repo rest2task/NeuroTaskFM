@@ -1,0 +1,78 @@
+version: 1
+name: neurocompiler-v1
+hardware: sm_100a
+artifacts:
+  path: ../../artifacts/neurocompiler-v1.h5
+  representation: teacher_distilled_fixed_basis
+input:
+  require_t1: true
+  require_fmri: true
+  allow_dicom_tokens: true
+  allow_nifti_volumes: true
+  require_deidentified_dicom: true
+output:
+  t1_shape: [192, 224, 192]
+  fmri_shape: [96, 112, 96]
+  slice_size: 224
+  slice_count_per_orientation: 32
+  parcel_count: 512
+  temporal_channels: 32
+operators:
+  - name: robust_intensity
+    type: robust_normalize
+    inputs: [t1, fmri]
+    params: {lower_percentile: 0.5, upper_percentile: 99.5, bins: 4096}
+  - name: epi_reference
+    type: temporal_reference
+    inputs: [fmri]
+    params: {low_motion_fraction: 0.35, minimum_frames: 24}
+  - name: t1_edges
+    type: sobel3d
+    inputs: [t1]
+    params: {sigma: 1.0}
+  - name: epi_edges
+    type: sobel3d
+    inputs: [epi_reference]
+    params: {sigma: 1.0}
+  - name: epi_t1_rigid
+    type: rigid_ncc
+    inputs: [epi_edges, t1_edges]
+    params: {levels: 4, iterations: [40, 30, 20, 12], rotation_step: 0.0025, translation_step: 0.25}
+  - name: epi_motion
+    type: rigid_series
+    inputs: [fmri, epi_reference]
+    params: {levels: 3, iterations: [20, 12, 8]}
+  - name: compose_resample
+    type: compose_resample
+    inputs: [fmri, epi_t1_rigid, epi_motion]
+    params: {interpolation: trilinear, single_resample: true}
+  - name: nuisance_projection
+    type: nuisance_regression
+    inputs: [fmri_resampled, epi_motion]
+    params: {motion_6: true, motion_derivatives: true, linear_trend: true, quadratic_trend: true, ridge: 0.001}
+  - name: temporal_basis
+    type: fixed_temporal_projection
+    inputs: [parcel_series, compiler_artifact]
+    params: {channels: 32, derivative_half: true, normalization: teacher_frozen}
+  - name: parcel_projection
+    type: parcel_project
+    inputs: [fmri_clean, atlas]
+    params: {minimum_voxels: 8}
+  - name: slice_pack
+    type: slice_extract
+    inputs: [t1, fmri_reference]
+    params: {orientations: [axial, coronal, sagittal], count: 32, size: 224}
+  - name: qc
+    type: quality_metrics
+    inputs: [fmri, fmri_clean, epi_motion]
+    params: {dvars: true, tsnr: true, fd: true, registration_confidence: true}
+selection:
+  representation_layers: [4, 8, 12, 16]
+  max_runtime_seconds: 130
+  objective_weights:
+    cka: 1.0
+    output_consistency: 1.0
+    geometry: 0.5
+    temporal_stability: 0.5
+    failure_rate: 2.0
+    latency: 0.25

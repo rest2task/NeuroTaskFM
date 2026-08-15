@@ -1,0 +1,22 @@
+{
+  "candidate_id": "compiler-round-001-candidate-01",
+  "rationale": "Retain the teacher-sensitive alignment and fixed temporal projection operators while limiting the graph to one composed interpolation.",
+  "graph": {
+    "version": 1,
+    "name": "compiler-round-001-candidate-01",
+    "hardware": "sm_100a",
+    "operators": [
+      {"name": "robust_intensity", "type": "robust_normalize", "inputs": ["t1", "fmri"], "params": {"lower_percentile": 0.5, "upper_percentile": 99.5, "bins": 4096}},
+      {"name": "epi_reference", "type": "temporal_reference", "inputs": ["fmri"], "params": {"low_motion_fraction": 0.35, "minimum_frames": 24}},
+      {"name": "epi_t1_rigid", "type": "rigid_ncc", "inputs": ["epi_reference", "t1"], "params": {"levels": 4, "iterations": [40, 30, 20, 12], "rotation_step": 0.0025, "translation_step": 0.25}},
+      {"name": "compose_resample", "type": "compose_resample", "inputs": ["fmri", "epi_t1_rigid"], "params": {"interpolation": "trilinear", "single_resample": true}},
+      {"name": "temporal_basis", "type": "fixed_temporal_projection", "inputs": ["parcel_series", "compiler_artifact"], "params": {"channels": 32, "derivative_half": true}},
+      {"name": "qc", "type": "quality_metrics", "inputs": ["fmri"], "params": {"dvars": true, "tsnr": true, "fd": true}}
+    ]
+  },
+  "expected_tradeoffs": {
+    "representation_fidelity": "high",
+    "runtime": "within the 130 second compiler budget",
+    "failure_mode": "severe susceptibility distortion remains a likely source of abstention"
+  }
+}

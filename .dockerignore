@@ -1,0 +1,11 @@
+.git
+build
+bin
+dist
+*.pt
+*.engine
+*.onnx
+*.h5
+!artifacts/neurocompiler-v1.h5
+*.nii*
+*.dcm

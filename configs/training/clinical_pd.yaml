@@ -1,0 +1,52 @@
+stage: clinical_posttraining
+name: Parkinson_posttraining
+model: configs/models/clinical_36b.yaml
+cluster: configs/cluster/dgx_b200_32.yaml
+seed: 20260817
+global_batch_size: 128
+micro_batch_size: 1
+gradient_accumulation_steps: 32
+optimizer:
+  learning_rate: 0.00002
+  minimum_learning_rate: 0.000001
+  warmup_steps: 5000
+  weight_decay: 0.02
+  betas: [0.9, 0.95]
+  gradient_clip: 1.0
+checkpointing:
+  interval_steps: 2000
+logging:
+  interval_steps: 10
+checkpoint: /checkpoints/neurotaskfm-signature/final
+train_manifest: /data/manifests/ppmi_train.jsonl
+validation_manifest: /data/manifests/ppmi_val.jsonl
+external_manifests:
+  - /data/manifests/pdbp_test.jsonl
+output_dir: /checkpoints/neurotaskfm-pd
+trainable:
+  disease_adapter_rank: 32
+  upper_layers: 6
+  signature_updater: true
+  outcome_heads: true
+resources:
+  enabled: false
+  eligible_resources: [dicom, slices, compiled_spatial, compiled_temporal, mr_images, mr_video, mr_volumes]
+  sample_combinations: false
+replay:
+  normative_manifest: /data/manifests/foundation_replay.jsonl
+  ratio: 0.35
+outcomes:
+  - future_motor
+  - future_executive
+  - cognitive_conversion
+  - dat_integrity
+concepts:
+  - sensorimotor_laterality
+  - striatal_motor_integration
+  - frontostriatal_recruitment
+  - posterior_cortical_integrity
+  - default_mode_frontoparietal_segregation
+max_steps: 140000
+planning_estimate:
+  wall_days_single_run: [12, 20]
+  final_replicates: 5

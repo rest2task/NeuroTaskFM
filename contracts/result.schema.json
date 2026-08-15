@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/result.schema.json",
+  "title": "NeuroTaskFM inference result",
+  "type": "object",
+  "required": ["query", "observations", "map_mean", "map_std", "behavior_mean", "quality_mean", "decision", "representation"],
+  "properties": {
+    "request_id": {"type": ["string", "null"]},
+    "query": {"type": ["object", "null"]},
+    "observations": {"type": "array", "items": {"type": "object"}},
+    "map_mean": {"type": "string"},
+    "map_std": {"type": "string"},
+    "map_template": {"type": "string"},
+    "map_individual_residual": {"type": "string"},
+    "behavior_mean": {"type": "object", "additionalProperties": {"type": "number"}},
+    "behavior_std": {"type": "object", "additionalProperties": {"type": "number"}},
+    "quality_mean": {"type": "object", "additionalProperties": {"type": "number"}},
+    "clinical_mean": {"type": "object", "additionalProperties": {"type": "number"}},
+    "trajectory_mean": {"type": "object", "additionalProperties": {"type": "number"}},
+    "decision": {
+      "type": "object",
+      "required": ["status", "map_confidence", "behavior_confidence", "ood_score", "reasons", "calibration_state"],
+      "properties": {
+        "status": {"enum": ["report", "partial", "abstain"]},
+        "map_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "behavior_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "ood_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "reasons": {"type": "array", "items": {"type": "string"}},
+        "calibration_state": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "representation": {"const": "inferred_task_effect_not_observed_task_dynamics"}
+  },
+  "additionalProperties": false
+}

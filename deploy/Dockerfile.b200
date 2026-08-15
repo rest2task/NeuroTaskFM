@@ -1,0 +1,83 @@
+ARG BUILD_IMAGE=nvcr.io/nvidia/cuda-dl-base:26.07-cuda13.3-devel-ubuntu24.04
+ARG RUNTIME_IMAGE=nvcr.io/nvidia/cuda-dl-base:26.07-cuda13.3-runtime-ubuntu24.04
+
+FROM ${BUILD_IMAGE} AS native-build
+
+ARG GO_VERSION=1.23.12
+ARG CMAKE_VERSION=3.31.8
+ARG LIBTORCH_VERSION=2.13.0
+ARG DCM2NIIX_VERSION=1.0.20260724
+ENV DEBIAN_FRONTEND=noninteractive \
+    CUDA_DEVICE_ORDER=PCI_BUS_ID \
+    NTFM_CUDA_ONLY=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ninja-build pkg-config git curl ca-certificates unzip \
+    libhdf5-dev libdcmtk-dev libnifti-dev libyaml-cpp-dev nlohmann-json3-dev \
+    libboost-system-dev libopencv-dev openmpi-bin \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xz
+RUN curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" \
+    | tar -C /opt -xz \
+    && ln -s "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/cmake" /usr/local/bin/cmake
+RUN curl -fsSL \
+    "https://download.pytorch.org/libtorch/cu130/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcu130.zip" \
+    -o /tmp/libtorch.zip \
+    && unzip -q /tmp/libtorch.zip -d /opt \
+    && rm /tmp/libtorch.zip
+RUN curl -fsSL \
+    "https://github.com/rordenlab/dcm2niix/archive/refs/tags/v${DCM2NIIX_VERSION}.tar.gz" \
+    -o /tmp/dcm2niix.tar.gz \
+    && mkdir -p /tmp/dcm2niix-source \
+    && tar -C /tmp/dcm2niix-source --strip-components=1 -xzf /tmp/dcm2niix.tar.gz \
+    && cmake -S /tmp/dcm2niix-source -B /tmp/dcm2niix-build \
+       -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /tmp/dcm2niix-build --target dcm2niix -j 16
+ENV PATH=/usr/local/go/bin:${PATH}
+
+WORKDIR /workspace/NeuroTaskFM
+COPY . .
+RUN cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+       -DCMAKE_CUDA_ARCHITECTURES=100a -DCMAKE_PREFIX_PATH=/opt/libtorch \
+    && cmake --build build -j 32 \
+    && DCM2NIIX_BINARY="$(find /tmp/dcm2niix-build -type f -name dcm2niix -print -quit)" \
+    && test -n "${DCM2NIIX_BINARY}" \
+    && cp "${DCM2NIIX_BINARY}" build/bin/dcm2niix
+RUN mkdir -p bin \
+    && go build -trimpath -ldflags '-s -w' -o bin/ntfm ./src/platform/cmd/ntfm \
+    && go build -trimpath -ldflags '-s -w' -o bin/neurotaskd ./src/platform/cmd/neurotaskd \
+    && go build -trimpath -ldflags '-s -w' -o bin/neurocompiler-agent ./src/platform/cmd/neurocompiler-agent
+RUN mkdir -p /opt/neurotaskfm-native/lib \
+    && mkdir -p /opt/neurotaskfm-native/licenses/dcm2niix \
+    && cp -a /opt/libtorch/lib/. /opt/neurotaskfm-native/lib/ \
+    && cp /tmp/dcm2niix-source/LICENSE /opt/neurotaskfm-native/licenses/dcm2niix/LICENSE
+
+FROM ${RUNTIME_IMAGE} AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CUDA_DEVICE_ORDER=PCI_BUS_ID \
+    NTFM_CUDA_ONLY=1 \
+    LD_LIBRARY_PATH=/opt/neurotaskfm/lib:${LD_LIBRARY_PATH} \
+    NTFM_COMPILER=/usr/local/bin/neurocompile \
+    NTFM_INFER=/usr/local/bin/ntfm-infer \
+    NTFM_PERSONALIZE=/usr/local/bin/ntfm-personalize \
+    NTFM_TRAIN=/usr/local/bin/ntfm-train
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libhdf5-dev libdcmtk-dev libnifti-dev libyaml-cpp-dev \
+    libboost-system-dev libopencv-dev openmpi-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=native-build /opt/neurotaskfm-native/lib/ /opt/neurotaskfm/lib/
+COPY --from=native-build /opt/neurotaskfm-native/licenses/ /usr/share/licenses/
+COPY --from=native-build /workspace/NeuroTaskFM/build/bin/ /usr/local/bin/
+COPY --from=native-build /workspace/NeuroTaskFM/bin/ /usr/local/bin/
+
+WORKDIR /opt/neurotaskfm
+COPY --from=native-build /workspace/NeuroTaskFM/configs/ ./configs/
+COPY --from=native-build /workspace/NeuroTaskFM/contracts/ ./contracts/
+COPY --from=native-build /workspace/NeuroTaskFM/artifacts/ ./artifacts/
+COPY --from=native-build /workspace/NeuroTaskFM/examples/ ./examples/
+COPY --from=native-build /workspace/NeuroTaskFM/web_app/ ./web_app/
+
+ENTRYPOINT ["ntfm"]

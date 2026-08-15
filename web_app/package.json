@@ -1,0 +1,19 @@
+{
+  "name": "neurotaskfm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 0.0.0.0",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@niivue/niivue": "^0.69.0",
+    "dompurify": "^3.4.13",
+    "marked": "^18.0.9"
+  },
+  "devDependencies": {
+    "vite": "^7.1.1"
+  }
+}

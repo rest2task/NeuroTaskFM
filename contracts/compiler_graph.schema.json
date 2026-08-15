@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neurotaskfm.org/contracts/compiler_graph.schema.json",
+  "title": "NeuroCompiler operator graph",
+  "type": "object",
+  "required": ["version", "name", "operators"],
+  "properties": {
+    "version": {"type": "integer", "minimum": 1},
+    "name": {"type": "string"},
+    "hardware": {"const": "sm_100a"},
+    "operators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "inputs", "params"],
+        "properties": {
+          "name": {"type": "string"},
+          "type": {
+            "enum": ["robust_normalize", "temporal_reference", "sobel3d", "rigid_ncc", "rigid_series", "compose_resample", "nuisance_regression", "fixed_temporal_projection", "parcel_project", "slice_extract", "quality_metrics"]
+          },
+          "inputs": {"type": "array", "items": {"type": "string"}},
+          "params": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true
+}

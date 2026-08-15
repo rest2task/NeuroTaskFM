@@ -1,0 +1,11 @@
+{
+  "request_id": "example-001",
+  "observations": [
+    {"pack": "/data/compiled/sub-0001_ses-01_rest.h5", "task": "rest", "visit": "ses-01"},
+    {"pack": "/data/compiled/sub-0001_ses-01_wm.h5", "task": "working_memory", "contrast": "2back_gt_0back", "visit": "ses-01"}
+  ],
+  "signature": "",
+  "query": {"task": "relational", "contrast": "relational_gt_match"},
+  "output_dir": "/results/example-001",
+  "config": "configs/deployment/product_b200x2.yaml"
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+jobs/
+uploads/
+cache/
+*.log
+*.key
+.env
+llm_endpoints.json

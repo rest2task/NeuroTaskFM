@@ -1,0 +1,13 @@
+{
+  "request_id": "compile-001",
+  "t1": "/data/example/sub-0001/ses-01/anat/t1w.nii.gz",
+  "fmri": "/data/example/sub-0001/ses-01/func/rest_bold.nii.gz",
+  "atlas": "/data/atlases/neurotask512.nii.gz",
+  "t1_dicom": "/data/example/sub-0001/ses-01/dicom/t1",
+  "fmri_dicom": "/data/example/sub-0001/ses-01/dicom/rest",
+  "subject_key": "sub-0001",
+  "task": "rest",
+  "tr_seconds": 0.8,
+  "config": "configs/compiler/neurocompiler.yaml",
+  "output": "/data/compiled/sub-0001_ses-01_rest.h5"
+}

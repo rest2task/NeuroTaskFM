@@ -1,0 +1,58 @@
+version: 1
+tasks:
+  rest:
+    domain: intrinsic
+    stimulus: none
+    response: none
+    contrasts: [intrinsic_state]
+  working_memory:
+    domain: executive_memory
+    stimulus: visual
+    response: button
+    load: [0back, 2back]
+    contrasts: [2back_gt_0back, 2back_gt_fixation]
+    expected_networks: [frontoparietal_control, dorsal_attention, salience]
+    expected_deactivation: [default_mode]
+  relational:
+    domain: relational_reasoning
+    stimulus: visual
+    response: button
+    contrasts: [relational_gt_match]
+    expected_networks: [frontoparietal_control, dorsal_attention]
+  episodic_memory:
+    domain: memory_encoding
+    stimulus: visual
+    response: button
+    contrasts: [encoding_gt_baseline, retrieval_gt_baseline]
+    expected_networks: [hippocampal, posterior_medial, frontoparietal_control]
+    expected_deactivation: [default_mode]
+  motor:
+    domain: motor
+    stimulus: visual
+    response: movement
+    contrasts: [left_hand, right_hand, left_foot, right_foot, tongue]
+    expected_networks: [sensorimotor, cerebellar]
+  language:
+    domain: language
+    stimulus: auditory
+    response: covert
+    contrasts: [story_gt_math, semantic_gt_baseline]
+    expected_networks: [language, auditory]
+  emotion:
+    domain: affective
+    stimulus: visual
+    response: button
+    contrasts: [faces_gt_shapes]
+    expected_networks: [salience, limbic, visual]
+  reward:
+    domain: reward
+    stimulus: visual
+    response: button
+    contrasts: [reward_gt_loss]
+    expected_networks: [striatal, salience, orbitofrontal]
+  social:
+    domain: social_cognition
+    stimulus: visual
+    response: button
+    contrasts: [mental_gt_random]
+    expected_networks: [default_mode, temporoparietal, medial_prefrontal]

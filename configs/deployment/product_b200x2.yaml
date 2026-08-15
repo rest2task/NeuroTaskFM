@@ -1,0 +1,16 @@
+model_config: configs/models/clinical_36b.yaml
+checkpoint: /checkpoints/neurotaskfm-c
+compiler_config: configs/compiler/neurocompiler.yaml
+precision: bf16
+fp8_linear: true
+expert_parallel_size: 2
+max_batch_size: 1
+compile_cuda_graphs: true
+cache_t1: true
+write_intermediate: false
+calibration: artifacts/calibration-v1.json
+runtime_budget_seconds: 170
+abstention:
+  minimum_map_confidence: 0.70
+  minimum_behavior_confidence: 0.65
+  maximum_ood_score: 0.20

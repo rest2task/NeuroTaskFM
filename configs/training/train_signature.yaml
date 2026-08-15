@@ -1,0 +1,41 @@
+stage: digital_twin_signature
+model: configs/models/clinical_36b.yaml
+cluster: configs/cluster/dgx_b200_32.yaml
+manifest: /data/manifests/longitudinal_train.jsonl
+validation_manifest: /data/manifests/longitudinal_val.jsonl
+checkpoint: /checkpoints/neurotaskfm-c/final
+output_dir: /checkpoints/neurotaskfm-signature
+seed: 20260816
+max_steps: 320000
+global_batch_size: 256
+micro_batch_size: 1
+gradient_accumulation_steps: 64
+max_observations: 4
+optimizer:
+  learning_rate: 0.00004
+  warmup_steps: 12000
+  weight_decay: 0.02
+  gradient_clip: 1.0
+observation_masking:
+  future_visit_probability: 0.35
+  partial_observation_probability: 0.40
+resources:
+  enabled: false
+  eligible_resources: [dicom, slices, compiled_spatial, compiled_temporal, mr_images, mr_video, mr_volumes]
+  sample_combinations: false
+loss:
+  map: 1.0
+  behavior: 0.8
+  clinical: 0.6
+  longitudinal: 0.8
+  same_person_consistency: 0.4
+  signature_identity: 0.4
+  moe_balance: 0.01
+  router_z: 0.0001
+checkpointing:
+  interval_steps: 2000
+logging:
+  interval_steps: 10
+planning_estimate:
+  wall_days_single_run: [18, 28]
+  final_replicates: 3

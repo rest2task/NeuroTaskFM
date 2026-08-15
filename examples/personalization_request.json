@@ -1,0 +1,12 @@
+{
+  "request_id": "personalize-001",
+  "packs": [
+    "/data/compiled/sub-0001_ses-01_rest.h5",
+    "/data/compiled/sub-0001_ses-01_wm.h5"
+  ],
+  "queries": ["rest", "working_memory:2back_gt_0back"],
+  "output": "/results/sub-0001/neurosignature.pt",
+  "config": "configs/deployment/product_b200x2.yaml",
+  "steps": 160,
+  "learning_rate": 0.015
+}

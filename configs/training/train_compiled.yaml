@@ -1,0 +1,140 @@
+stage: compiled_space_pretraining
+model: configs/models/clinical_36b.yaml
+teacher_model: configs/models/teacher_72b.yaml
+cluster: configs/cluster/dgx_b200_32.yaml
+manifest: /data/manifests/compiled_train.jsonl
+validation_manifest: /data/manifests/compiled_val.jsonl
+teacher_checkpoint: /checkpoints/neurotaskfm-t/final
+output_dir: /checkpoints/neurotaskfm-c
+seed: 20260815
+max_steps: 800000
+global_batch_size: 384
+micro_batch_size: 1
+gradient_accumulation_steps: 96
+optimizer:
+  name: adamw
+  learning_rate: 0.0001
+  minimum_learning_rate: 4.0e-06
+  warmup_steps: 32000
+  weight_decay: 0.06
+  betas:
+  - 0.9
+  - 0.95
+  gradient_clip: 1.0
+precision:
+  autocast: bf16
+  fp8: hybrid
+  fp8_start_step: 12000
+parallel:
+  expert_parallel_size: 8
+  data_parallel_size: 4
+  activation_checkpointing: every_block
+  fsdp_shard_group: data_parallel
+  compile: true
+resources:
+  enabled: false
+  include_primary_nifti: true
+  primary_nifti_destination: typed
+  prefer_direct_nifti: false
+  allow_missing_pack: false
+  nifti_frame_axis: -1
+  image_size: [224, 224]
+  volume_shape: [96, 112, 96]
+  max_images: 48
+  max_video_frames: 32
+  max_volumes: 8
+  max_fmri_volumes: 8
+  frame_stride: 1
+  image_patch_size: 16
+  tokens_per_image: 4
+  tokens_per_video_frame: 4
+  volume_patch_size: [8, 8, 8]
+  tokens_per_volume: 64
+  eligible_resources: [dicom, slices, compiled_spatial, compiled_temporal, mr_images, mr_video, mr_volumes]
+  sample_combinations: true
+  combinations:
+    all_available: {weight: 0.22, include: ["*"]}
+    generic_mr_only: {weight: 0.06, include: [mr_images, mr_video, mr_volumes]}
+    still_images_only: {weight: 0.05, include: [mr_images]}
+    cine_or_video_only: {weight: 0.05, include: [mr_video]}
+    typed_volumes_only: {weight: 0.08, include: [mr_volumes]}
+    compiler_only: {weight: 0.14, include: [compiled_spatial, compiled_temporal]}
+    compiler_plus_images: {weight: 0.08, include: [compiled_spatial, compiled_temporal, mr_images]}
+    compiler_plus_video: {weight: 0.06, include: [compiled_spatial, compiled_temporal, mr_video]}
+    compiler_plus_volumes: {weight: 0.06, include: [compiled_spatial, compiled_temporal, mr_volumes]}
+    acquisition_plus_pixels: {weight: 0.04, include: [dicom, mr_images, mr_video, mr_volumes]}
+    structural_multicontrast: {weight: 0.06, include: [slices, mr_images, mr_volumes], modalities: [t1, t2, flair, dwi, swi, qsm, magnitude, angiography, parametric]}
+    functional_sequences: {weight: 0.06, include: [slices, mr_video, mr_volumes], modalities: [bold, fmri, epi, perfusion, asl, dsc, spectroscopy]}
+    t1_plus_bold: {weight: 0.04, include: [slices, mr_images, mr_video, mr_volumes], modalities: [t1, bold]}
+loss:
+  real_targets: 1.0
+  future_latent: 0.4
+  hidden_distillation: 0.7
+  output_distillation: 0.8
+  map: 1.0
+  behavior: 0.7
+  dynamic_state: 0.6
+  quality: 0.4
+  calibration: 0.2
+  moe_balance: 0.01
+  physics:
+    enabled: false
+    regions: 512
+    lambda_dyn: 0.15
+    lambda_bold: 0.08
+    lambda_stab: 0.05
+    lambda_equiv: 0.04
+    equivariance_shift_steps: 1
+    stability_margin: 0.02
+    bold_scale: 1.0
+    demean_bold: true
+    terms:
+      dynamics: true
+      anatomy: true
+      hemodynamics: true
+      stability: true
+      equivariance: true
+checkpoint:
+  interval_steps: 4000
+  keep_last: 6
+logging:
+  interval_steps: 20
+  validation_interval_steps: 2000
+planning_estimate:
+  wall_days_single_run:
+  - 38
+  - 55
+  final_replicates: 3
+context_curriculum:
+- until_step: 120000
+  dicom_tokens: 768
+  slices: 48
+  spatial_tokens: 256
+  temporal_tokens: 192
+  mr_images: 12
+  mr_video_frames: 8
+  mr_volumes: 2
+- until_step: 320000
+  dicom_tokens: 1536
+  slices: 72
+  spatial_tokens: 320
+  temporal_tokens: 384
+  mr_images: 24
+  mr_video_frames: 16
+  mr_volumes: 4
+- until_step: 560000
+  dicom_tokens: 2304
+  slices: 108
+  spatial_tokens: 384
+  temporal_tokens: 576
+  mr_images: 36
+  mr_video_frames: 24
+  mr_volumes: 6
+- until_step: 800000
+  dicom_tokens: 3072
+  slices: 144
+  spatial_tokens: 384
+  temporal_tokens: 768
+  mr_images: 48
+  mr_video_frames: 32
+  mr_volumes: 8
