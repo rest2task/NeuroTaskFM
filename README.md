@@ -135,10 +135,8 @@ Read [data preparation](docs/data.md), [training](docs/training.md),
 [deployment](docs/deployment.md), and [architecture](docs/architecture.md) for
 details.
 
-## Important notes
+## Model Release
 
-- Training data and model checkpoints are not included.
-- The checked-in compiler and calibration artifacts are bootstrap files.
-- NeuroCompiler outputs are model features, not conventional GLM activation maps.
-- Freeze splits, artifacts, checkpoints, and calibration before locked evaluation.
-- Source code is Apache-2.0 licensed; external libraries retain their own licenses.
+🔗 **Download the model here:** [markjiang1/NeuroTaskFM](https://huggingface.co/markjiang1/NeuroTaskFM)
+
+⚠️ **DISCLAIMER: This model is for research purposes only. It is strictly NOT intended for clinical, diagnostic, or therapeutic use.**
